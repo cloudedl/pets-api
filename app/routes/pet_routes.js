@@ -67,7 +67,44 @@ router.post('/pets', requireToken, (req,res,next) => {
         .catch(next)
 })
 // UPDATE
+//  PATCH /pets/:id
+router.patch('/pets/:id', requireToken, removeBlanks, (req,res,next) => {
+    // if the client attempts to change the owner fo the pet, we can disallow that from the start
+    delete req.body.owner
+    // then find the pet by the id
+    Pet.findById(req.params.id)
+    // handle the 404
+        .then(handle404)
+    // requireOwnership and update the pet
+        .then(pet => {
+            requireOwnership(req, pet)
+
+            return pet.updateOne(req.body.pet)
+        })
+    // send a 204 no content if successful
+        .then(() => res.sendStatus(204))
+    // pass to errorhandler if not successful
+        .catch(next)
+})
 // REMOVE
+// DELETE /pets/:id
+router.delete('/pets/:id', requireToken, (req,res,next) => {
+    
+    // then find the pet by id
+    Pet.findById(req.params.id)
+    // first handle the 404 if any
+        .then(handle404)
+    // use requireOwnership middleware to make sure the right person is making this request
+        .then(pet => {
+            requireOwnership(req, pet)
+            // delete if the middlware doesn't throw error
+            pet.deleteOne()
+        })
+    // send back a 204 no content status
+        .then(() => res.sendStatus(204))
+    // if error occurs, pass to the handler
+        .catch(next)
+})
 
 // ROUTES ABOVE HERE
 
