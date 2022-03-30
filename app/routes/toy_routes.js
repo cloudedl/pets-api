@@ -41,8 +41,73 @@ router.post('/toys/:petId', removeBlanks, (req,res,next) => {
 
 // Patch -> udpate a toy
 // PATCH /toys/<pet_id>/<toy_id>
+router.patch('/toys/:petId/:toyId', requireToken, removeBlanks, (req,res,next) => {
+    // saving both id's to variables for easy reference
+    const toyId= req.params.toyId
+    const petId= req.params.petId
+    
+    Pet.findById(petId)
+        .then(handle404)
+        .then(pet => {
+            const theToy = pet.toys.id(toyId)
+            console.log('this is the original toy', theToy)
+            requireOwnership(req, pet)
+
+            theToy.set(req.body.toy)
+
+            // return { theToy, pet }
+            return pet.save()
+        })
+        // .then(data => {
+        //     const { theToy, pet } = data
+        //     console.log('this is data in update', data)
+        //     console.log('this is req.body.toy',req.body.toy )
+           
+        //     theToy.name = req.body.toy.name
+        //     theToy.description = req.body.toy.description
+            
+        //     if (req.body.toy.isSqueaky) {
+        //         theToy.isSqueaky = true
+        //     } else {
+        //         theToy.isSqueaky = false
+        //     }
+        //     theToy.condition = req.body.toy.condition
+
+        //     // theToy.set({ toy: req.body.toy })
+        // ^^^^ this Syntax didn't work ^^^^
+        //     return pet.save()
+        // })
+        .then(() => res.sendStatus(204))
+        .catch(next)
+    })
 
 // DELETE -> delete a toy
 // DELETE /toys/<pet_id>/<toy_id>
+
+router.delete('/toys/:petId/:toyId', requireToken, (req,res,next) => {
+    // saving both id's to variables for easy reference
+    const toyId= req.params.toyId
+    const petId= req.params.petId
+    
+    // find the pet in the db
+    Pet.findById(petId)
+        // if pet not found throw 404
+        .then(handle404)
+        
+        .then(pet => {
+            // get the specific subDocument by it's idi
+            const theToy = pet.toys.id(toyId)
+            // require that the deleter is the owner of the pet
+            requireOwnership(req ,pet)
+            // call remove on the toy we got on the line above requireOwnership
+            theToy.remove()
+            
+            // return the saved pet
+            return pet.save()
+        })
+        // send 204 no content
+        .then(() => res.sendStatus(204))
+        .catch(next)
+})
 
 module.exports = router
